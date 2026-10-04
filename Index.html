@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Trivial Buzz Multi-Móvil</title>
+  
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      margin: 0;
+      padding: 0;
+      overflow: hidden !important;
+      position: fixed;
+      touch-action: manipulation;
+      overscroll-behavior: none;
+      -webkit-user-select: none;
+      user-select: none;
+      background-color: #090d16;
+      color: #f8fafc;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    .hidden { display: none !important; }
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      padding: 12px;
+      justify-content: space-between;
+    }
+
+    header {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      padding: 8px 12px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .room-badge {
+      background: #6366f122;
+      color: #818cf8;
+      border: 1px solid #6366f144;
+      padding: 4px 8px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-size: 0.75rem;
+    }
+
+    .card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      padding: 20px;
+      text-align: center;
+      max-width: 440px;
+      margin: auto;
+      width: 100%;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .form-group {
+      text-align: left;
+      margin-bottom: 12px;
+    }
+
+    .form-label {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-weight: 800;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .input-field, .select-field {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .btn-main {
+      background: linear-gradient(90deg, #6366f1, #a855f7);
+      color: #fff;
+      font-weight: 800;
+      font-size: 1rem;
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      width: 100%;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      margin-top: 8px;
+    }
+
+    #qrcode {
+      background: #fff;
+      padding: 10px;
+      border-radius: 12px;
+      display: inline-block;
+      margin: 12px 0;
+    }
+
+    .player-chip {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 4px 10px;
+      border-radius: 16px;
+      font-weight: 800;
+      font-size: 0.8rem;
+      color: #38bdf8;
+      display: inline-block;
+      margin: 3px;
+    }
+
+    /* ZONA DE JUEGO Y PREGUNTAS */
+    .game-view {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .question-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 14px;
+      text-align: center;
+    }
+
+    .diff-badge {
+      font-size: 0.7rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 10px;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+    .diff-facil { background: #05966922; color: #34d399; border: 1px solid #05966944; }
+    .diff-media { background: #d9770622; color: #fbbf24; border: 1px solid #d9770644; }
+    .diff-dificil { background: #dc262622; color: #f87171; border: 1px solid #dc262644; }
+
+    .q-text {
+      font-size: 1.05rem;
+      font-weight: 800;
+      line-height: 1.3;
+      margin-bottom: 10px;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .opt-btn {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #cbd5e1;
+    }
+
+    .opt-btn.correct {
+      background: #059669 !important;
+      color: #fff !important;
+      border-color: #34d399 !important;
+    }
+
+    .status-banner {
+      background: #1e293b;
+      border: 1px solid #334155;
+      padding: 12px;
+      border-radius: 12px;
+      text-align: center;
+      font-weight: 900;
+      font-size: 1rem;
+      text-transform: uppercase;
+    }
+
+    .status-banner.winner {
+      background: linear-gradient(135deg, #ef4444, #b91c1c);
+      color: #fff;
+      border-color: #f87171;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+    }
+
+    .buzz-btn {
+      width: 100%;
+      height: 170px;
+      border-radius: 24px;
+      border: 5px solid rgba(255, 255, 255, 0.2);
+      background: radial-gradient(circle, #ef4444 0%, #991b1b 100%);
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.5);
+      color: #fff;
+      font-size: 2.2rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+
+    .buzz-btn.disabled {
+      background: #334155 !important;
+      box-shadow: none !important;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .control-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-action {
+      background: #10b981;
+      color: #fff;
+      font-weight: 800;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      width: 100%;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <header>
+      <div style="font-weight: 900; font-size: 0.95rem;">🚨 TRIVIAL BUZZ</div>
+      <div id="roundTag" style="font-size: 0.75rem; font-weight: 800; color: #a855f7;">RONDA: --/--</div>
+      <div id="roomTag" class="room-badge">SALA: ----</div>
+    </header>
+
+    <!-- MENU PRINCIPAL (CREAR O UNIRSE) -->
+    <div id="stepChoice" class="card">
+      <h2 style="font-size: 1.2rem; margin-bottom: 14px;">Configurar Partida</h2>
+      
+      <div class="form-group">
+        <label class="form-label">Tu Nombre (Obligatorio):</label>
+        <input type="text" id="myRoleName" placeholder="Escribe tu nombre aquí" class="input-field" required>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Número de Jugadores:</label>
+        <select id="maxPlayersSelect" class="select-field">
+          <option value="2">2 Jugadores</option>
+          <option value="3">3 Jugadores</option>
+          <option value="4" selected>4 Jugadores</option>
+          <option value="5">5 Jugadores</option>
+          <option value="6">6 Jugadores</option>
+          <option value="8">8 Jugadores</option>
+          <option value="10">10 Jugadores</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Número de Rondas:</label>
+        <select id="maxRoundsSelect" class="select-field">
+          <option value="4">4 Rondas</option>
+          <option value="6" selected>6 Rondas</option>
+          <option value="8">8 Rondas</option>
+        </select>
+      </div>
+
+      <button onclick="createRoom()" class="btn-main">👑 Crear Sala (Anfitrión)</button>
+    </div>
+
+    <!-- LOBBY DE ESPERA (QR) -->
+    <div id="stepLobby" class="card hidden">
+      <h3 style="font-size: 1.1rem;">Escanead para Uniros</h3>
+      <div id="qrcode"></div>
+      <p style="font-size: 0.8rem; color: #94a3b8; font-weight: 800;">
+        Jugadores: <span id="joinedCount">1</span> / <span id="targetPlayers">4</span>
+      </p>
+      <div id="playerList" style="margin: 8px 0;"></div>
+      <button onclick="startGame()" class="btn-main">🚀 Empezar Partida</button>
+    </div>
+
+    <!-- PANTALLA DE JUEGO (MÓVIL) -->
+    <div id="stepGame" class="game-view hidden">
+      
+      <!-- PREGUNTA Y OPCIONES -->
+      <div class="question-card">
+        <div><span id="diffBadge" class="diff-badge diff-facil">FÁCIL</span></div>
+        <div id="qText" class="q-text">¿Listos para empezar?</div>
+        
+        <div class="options-grid" id="optionsGrid">
+          <div class="opt-btn" id="opt0">A) ---</div>
+          <div class="opt-btn" id="opt1">B) ---</div>
+          <div class="opt-btn" id="opt2">C) ---</div>
+          <div class="opt-btn" id="opt3">D) ---</div>
+        </div>
+      </div>
+
+      <!-- ESTADO / RESULTADO -->
+      <div id="statusBanner" class="status-banner">
+        🟢 ESPERANDO PREGUNTA
+      </div>
+
+      <!-- PULSADOR BUZZ -->
+      <button id="buzzBtn" onclick="pressBuzz()" class="buzz-btn disabled">
+        ⚡ BUZZ!
+      </button>
+
+      <!-- CONTROLES EXCLUSIVOS DEL ANFITRIÓN -->
+      <div class="control-bar">
+        <button id="btnNextQ" onclick="hostNextQuestion()" class="btn-action hidden">🎲 Lanzar Pregunta</button>
+        <button id="btnShowAns" onclick="hostShowAnswer()" class="btn-action hidden" style="background:#6366f1;">👁️ Revelar Respuesta</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const QUESTION_BANK = {
+      facil: [
+        { q: "¿Cuál es el océano más grande del mundo?", opts: ["Atlántico", "Pacífico", "Índico", "Ártico"], correct: 1 },
+        { q: "¿En qué país se encuentran las Pirámides de Guiza?", opts: ["Grecia", "México", "Egipto", "Perú"], correct: 2 },
+        { q: "¿En qué año llegó Cristóbal Colón a América?", opts: ["1492", "1500", "1488", "1512"], correct: 0 },
+        { q: "¿Qué civilización construyó el Coliseo?", opts: ["Griega", "Egipcia", "Romana", "Maya"], correct: 2 },
+        { q: "¿Qué famoso fontanero viste de rojo en Nintendo?", opts: ["Luigi", "Wario", "Super Mario", "Yoshi"], correct: 2 },
+        { q: "¿Quién pintó la famosa obra 'La Gioconda'?", opts: ["Picasso", "Da Vinci", "Van Gogh", "Dalí"], correct: 1 },
+        { q: "¿Quién escribió 'Don Quijote de la Mancha'?", opts: ["Cervantes", "Lope de Vega", "García Lorca", "Quevedo"], correct: 0 },
+        { q: "¿Qué gas respiramos principalmente para vivir?", opts: ["Nitrógeno", "Oxígeno", "Dióxido de Carbono", "Helio"], correct: 1 },
+        { q: "¿Cuál es el planeta más cercano al Sol?", opts: ["Venus", "Marte", "Mercurio", "Júpiter"], correct: 2 },
+        { q: "¿Cuántos jugadores componen un equipo de fútbol en campo?", opts: ["10", "11", "12", "9"], correct: 1 },
+        { q: "¿Cada cuántos años se celebran los JJOO de Verano?", opts: ["2 años", "4 años", "5 años", "3 años"], correct: 1 },
+        { q: "¿Cuál es la capital de Italia?", opts: ["Milán", "Venecia", "Roma", "Nápoles"], correct: 2 },
+        { q: "¿Qué criatura es Pikachu en Pokémon?", opts: ["Perro eléctrico", "Ratón eléctrico", "Gato eléctrico", "Conejo eléctrico"], correct: 1 },
+        { q: "¿Qué órgano del cuerpo humano bombea la sangre?", opts: ["Pulmón", "Hígado", "Corazón", "Cerebro"], correct: 2 },
+        { q: "¿Cuál es el animal terrestre más rápido del mundo?", opts: ["León", "Guepardo", "Gacela", "Tigre"], correct: 1 },
+        { q: "¿En qué continente se encuentra Japón?", opts: ["Europa", "América", "Asia", "Oceanía"], correct: 2 },
+        { q: "¿Cuál es la capital de España?", opts: ["Barcelona", "Sevilla", "Madrid", "Valencia"], correct: 2 },
+        { q: "¿Cuántos días tiene un año bisiesto?", opts: ["365", "366", "364", "367"], correct: 1 },
+        { q: "¿De qué color es la bandera de la paz?", opts: ["Roja", "Verde", "Blanca", "Azul"], correct: 2 },
+        { q: "¿En qué película aparece el muñeco Woody?", opts: ["Shrek", "Toy Story", "Cars", "Up"], correct: 1 }
+      ],
+      media: [
+        { q: "¿Cuál es la capital oficial de Australia?", opts: ["Sídney", "Melbourne", "Camberra", "Brisbane"], correct: 2 },
+        { q: "¿En qué año cayó el Muro de Berlín?", opts: ["1989", "1991", "1975", "1983"], correct: 0 },
+        { q: "¿Qué imperio fue liderado por Gengis Kan?", opts: ["Otomano", "Mongol", "Persa", "Romano"], correct: 1 },
+        { q: "¿En qué año se estrenó la película original de 'Star Wars'?", opts: ["1975", "1977", "1980", "1983"], correct: 1 },
+        { q: "¿Quién dirigió la película 'Interstellar'?", opts: ["Spielberg", "Tarantino", "Nolan", "Ridley Scott"], correct: 2 },
+        { q: "¿En qué museo de París se encuentra 'La Venus de Milo'?", opts: ["Orsay", "Louvre", "Pompidou", "Prado"], correct: 1 },
+        { q: "¿Qué pintor barroco español realizó 'Las Meninas'?", opts: ["Goya", "Velázquez", "El Greco", "Murillo"], correct: 1 },
+        { q: "¿Cuál es el símbolo químico del Oro en la tabla periódica?", opts: ["Or", "Ag", "Au", "Fe"], correct: 2 },
+        { q: "¿Qué científica descubrió el radio y el polonio?", opts: ["Rosalind Franklin", "Marie Curie", "Ada Lovelace", "Lise Meitner"], correct: 1 },
+        { q: "¿Cuál es la distancia exacta de una maratón oficial?", opts: ["40 km", "42,195 km", "45 km", "38,5 km"], correct: 1 },
+        { q: "¿Qué país ganó el primer Mundial de Fútbol en 1930?", opts: ["Brasil", "Argentina", "Uruguay", "Italia"], correct: 2 },
+        { q: "¿Cuál es el río más largo del mundo?", opts: ["Nilo", "Amazonas", "Misisipi", "Yangtsé"], correct: 1 },
+        { q: "¿Qué gas es el más abundante en la atmósfera terrestre?", opts: ["Oxígeno", "Nitrógeno", "Argón", "Dióxido de Carbono"], correct: 1 },
+        { q: "¿En qué año comenzó la Segunda Guerra Mundial?", opts: ["1914", "1939", "1945", "1936"], correct: 1 },
+        { q: "¿Quién escribió la novela 'Cien años de soledad'?", opts: ["Mario Vargas Llosa", "Gabriel García Márquez", "Julio Cortázar", "Pablo Neruda"], correct: 1 },
+        { q: "¿Cuál es el metal más abundante en la corteza terrestre?", opts: ["Hierro", "Cobre", "Aluminio", "Oro"], correct: 2 }
+      ],
+      dificil: [
+        { q: "¿Qué país africano está rodeado completamente por Sudáfrica?", opts: ["Esuatini", "Lesoto", "Botsuana", "Zimbabue"], correct: 1 },
+        { q: "¿En qué año se firmó la Paz de Westfalia?", opts: ["1648", "1555", "1713", "1603"], correct: 0 },
+        { q: "¿Qué técnica pictórica de difuminado perfeccionó Da Vinci?", opts: ["Claroscuro", "Sfumato", "Impasto", "Puntillismo"], correct: 1 },
+        { q: "¿Cuál es el elemento químico más denso de la naturaleza?", opts: ["Plomo", "Osmio", "Iridio", "Uranio"], correct: 1 },
+        { q: "¿Quién compuso la ópera 'Las bodas de Fígaro'?", opts: ["Beethoven", "Mozart", "Bach", "Wagner"], correct: 1 }
+      ]
+    };
+
+    let activeDeck = JSON.parse(JSON.stringify(QUESTION_BANK));
+
+    let peer = null;
+    let connections = {};
+    let isHost = false;
+    let roomId = null;
+    let myName = "";
+    let buzzLocked = false;
+    let connToHost = null;
+    let currentQuestion = null;
+
+    let targetPlayersCount = 4;
+    let totalRounds = 6;
+    let currentRound = 0;
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playAudio(type) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      const now = audioCtx.currentTime;
+
+      if (type === 'buzz') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(220, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.35);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        roomId = roomParam;
+        document.getElementById('stepChoice').innerHTML = `
+          <h2 style="font-size: 1.2rem; margin-bottom: 12px;">Unirte a la Partida</h2>
+          <div class="form-group">
+            <label class="form-label">Tu Nombre (Obligatorio):</label>
+            <input type="text" id="myRoleName" placeholder="Escribe tu nombre aquí" class="input-field" required>
+          </div>
+          <button onclick="joinRoom()" class="btn-main">⚡ Entrar a Jugar</button>
+        `;
+      }
+    });
+
+    /* --- CREAR SALA (HOST) --- */
+    function createRoom() {
+      const nameInput = document.getElementById('myRoleName').value.trim();
+      if (!nameInput) {
+        alert("Por favor, pon tu nombre antes de empezar.");
+        return;
+      }
+      myName = nameInput;
+
+      targetPlayersCount = parseInt(document.getElementById('maxPlayersSelect').value);
+      totalRounds = parseInt(document.getElementById('maxRoundsSelect').value);
+
+      isHost = true;
+      roomId = 'TRIVIAL-' + Math.floor(1000 + Math.random() * 9000);
+      
+      document.getElementById('roomTag').textContent = `SALA: ${roomId}`;
+      document.getElementById('targetPlayers').textContent = targetPlayersCount;
+      updateRoundUI(0);
+
+      peer = new Peer(roomId);
+
+      peer.on('open', (id) => {
+        document.getElementById('stepChoice').classList.add('hidden');
+        document.getElementById('stepLobby').classList.remove('hidden');
+
+        const joinUrl = `${window.location.origin}${window.location.pathname}?room=${id}`;
+        new QRCode(document.getElementById("qrcode"), { text: joinUrl, width: 160, height: 160 });
+        updatePlayerList();
+      });
+
+      peer.on('connection', (conn) => {
+        conn.on('data', (data) => {
+          if (data.type === 'JOIN') {
+            connections[conn.peer] = { conn, name: data.name };
+            updatePlayerList();
+          } else if (data.type === 'BUZZ') {
+            triggerBuzz(data.name);
+          }
+        });
+        conn.on('close', () => {
+          delete connections[conn.peer];
+          updatePlayerList();
+        });
+      });
+    }
+
+    function updatePlayerList() {
+      const list = document.getElementById('playerList');
+      list.innerHTML = `<span class="player-chip">⭐ ${myName} (Tú)</span>`;
+      const playerArr = Object.values(connections);
+      
+      document.getElementById('joinedCount').textContent = playerArr.length + 1;
+
+      playerArr.forEach(p => {
+        const chip = document.createElement('span');
+        chip.className = 'player-chip';
+        chip.textContent = `📱 ${p.name}`;
+        list.appendChild(chip);
+      });
+    }
+
+    function startGame() {
+      document.getElementById('stepLobby').classList.add('hidden');
+      document.getElementById('stepGame').classList.remove('hidden');
+      document.getElementById('btnNextQ').classList.remove('hidden');
+      document.getElementById('btnShowAns').classList.remove('hidden');
+      
+      broadcast({ 
+        type: 'START_GAME', 
+        totalRounds: totalRounds 
+      });
+    }
+
+    /* --- UNIRSE A SALA (CLIENTE) --- */
+    function joinRoom() {
+      const nameInput = document.getElementById('myRoleName').value.trim();
+      if (!nameInput) {
+        alert("Por favor, pon tu nombre antes de empezar.");
+        return;
+      }
+      myName = nameInput;
+
+      document.getElementById('roomTag').textContent = `SALA: ${roomId}`;
+
+      peer = new Peer();
+
+      peer.on('open', () => {
+        connToHost = peer.connect(roomId);
+
+        connToHost.on('open', () => {
+          connToHost.send({ type: 'JOIN', name: myName });
+          document.getElementById('stepChoice').innerHTML = `
+            <h3 style="color:#4ade80;">🟢 ¡Conectado!</h3>
+            <p style="color:#94a3b8; font-size:0.85rem; margin-top:6px;">Esperando que el anfitrión inicie...</p>
+          `;
+        });
+
+        connToHost.on('data', (data) => {
+          if (data.type === 'START_GAME') {
+            totalRounds = data.totalRounds;
+            document.getElementById('stepChoice').classList.add('hidden');
+            document.getElementById('stepGame').classList.remove('hidden');
+          } else if (data.type === 'NEW_QUESTION') {
+            currentRound = data.round;
+            updateRoundUI(currentRound);
+            renderQuestionUI(data.qData);
+          } else if (data.type === 'LOCK_BUZZ') {
+            handleLockUI(data.winner);
+          } else if (data.type === 'SHOW_ANSWER') {
+            revealAnswerUI(data.correctIdx);
+          } else if (data.type === 'GAME_OVER') {
+            handleGameOverUI();
+          }
+        });
+      });
+    }
+
+    /* --- PREGUNTAS Y RONDAS --- */
+    function hostNextQuestion() {
+      if (!isHost) return;
+
+      if (currentRound >= totalRounds) {
+        handleGameOverUI();
+        broadcast({ type: 'GAME_OVER' });
+        return;
+      }
+
+      currentRound++;
+      updateRoundUI(currentRound);
+
+      let category = 'facil';
+      const rand = Math.random();
+
+      if (rand < 0.50 && activeDeck.facil.length > 0) {
+        category = 'facil';
+      } else if (rand < 0.90 && activeDeck.media.length > 0) {
+        category = 'media';
+      } else if (activeDeck.dificil.length > 0) {
+        category = 'dificil';
+      } else {
+        if (activeDeck.facil.length > 0) category = 'facil';
+        else if (activeDeck.media.length > 0) category = 'media';
+        else if (activeDeck.dificil.length > 0) category = 'dificil';
+        else {
+          activeDeck = JSON.parse(JSON.stringify(QUESTION_BANK));
+          category = 'facil';
+        }
+      }
+
+      const qIndex = Math.floor(Math.random() * activeDeck[category].length);
+      const qObj = activeDeck[category].splice(qIndex, 1)[0];
+      qObj.category = category;
+
+      currentQuestion = qObj;
+      buzzLocked = false;
+
+      renderQuestionUI(qObj);
+      broadcast({ type: 'NEW_QUESTION', qData: qObj, round: currentRound });
+    }
+
+    function updateRoundUI(round) {
+      document.getElementById('roundTag').textContent = `RONDA: ${round}/${totalRounds}`;
+    }
+
+    function renderQuestionUI(qData) {
+      currentQuestion = qData;
+      buzzLocked = false;
+
+      const badge = document.getElementById('diffBadge');
+      badge.className = `diff-badge diff-${qData.category}`;
+      badge.textContent = qData.category.toUpperCase();
+
+      document.getElementById('qText').textContent = qData.q;
+      const letters = ["A", "B", "C", "D"];
+      qData.opts.forEach((opt, i) => {
+        const el = document.getElementById(`opt${i}`);
+        el.textContent = `${letters[i]}) ${opt}`;
+        el.classList.remove('correct');
+      });
+
+      const btn = document.getElementById('buzzBtn');
+      const banner = document.getElementById('statusBanner');
+      btn.classList.remove('disabled');
+      banner.classList.remove('winner');
+      banner.textContent = "🟢 ¡PULSADOR ACTIVO!";
+    }
+
+    /* --- LÓGICA DEL PULSADOR --- */
+    function pressBuzz() {
+      if (buzzLocked) return;
+
+      if (isHost) {
+        triggerBuzz(myName);
+      } else if (connToHost) {
+        connToHost.send({ type: 'BUZZ', name: myName });
+      }
+    }
+
+    function triggerBuzz(winnerName) {
+      if (buzzLocked) return;
+      buzzLocked = true;
+
+      playAudio('buzz');
+      handleLockUI(winnerName);
+
+      if (isHost) {
+        broadcast({ type: 'LOCK_BUZZ', winner: winnerName });
+      }
+    }
+
+    /* MENSAJE UNIFICADO EN TODOS LOS MÓVILES */
+    function handleLockUI(winnerName) {
+      buzzLocked = true;
+      const btn = document.getElementById('buzzBtn');
+      const banner = document.getElementById('statusBanner');
+
+      btn.classList.add('disabled');
+      banner.classList.add('winner');
+
+      // Mismo mensaje idéntico en todas las pantallas
+      banner.textContent = `ha ganado el paleto de ${winnerName}`;
+
+      if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+    }
+
+    function hostShowAnswer() {
+      if (!isHost || !currentQuestion) return;
+      revealAnswerUI(currentQuestion.correct);
+      broadcast({ type: 'SHOW_ANSWER', correctIdx: currentQuestion.correct });
+    }
+
+    function revealAnswerUI(correctIdx) {
+      document.getElementById(`opt${correctIdx}`).classList.add('correct');
+    }
+
+    function handleGameOverUI() {
+      document.getElementById('qText').textContent = "🏆 ¡FIN DE LA PARTIDA!";
+      document.getElementById('optionsGrid').innerHTML = "";
+      document.getElementById('statusBanner').textContent = "🏁 Se han completado todas las rondas";
+      document.getElementById('statusBanner').classList.remove('winner');
+      document.getElementById('buzzBtn').classList.add('disabled');
+      if (isHost) {
+        document.getElementById('btnNextQ').classList.add('hidden');
+        document.getElementById('btnShowAns').classList.add('hidden');
+      }
+    }
+
+    function broadcast(data) {
+      Object.values(connections).forEach(p => p.conn.send(data));
+    }
+  </script>
+</body>
+</html>
